@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>医学内容审校工具</title>
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-left">
+    <img src="icon.svg" alt="Logo" class="header-logo">
+    <h1>医学内容审校工具</h1>
+  </div>
+  <div class="header-center">
+    <p class="header-steps">上传稿件 → 结构化拆解 → 自动标出合规/术语/错别字/标点等问题</p>
+  </div>
+  <div class="header-user" id="headerUser" style="display:none;">
+    <span class="user-name" id="userName">未登录</span>
+    <button class="btn-text" id="logoutBtn">退出</button>
+  </div>
+</header>
+
+<main class="app-main">
+
+  <!-- 输入方式切换 -->
+  <div class="input-tabs">
+    <button class="tab-btn active" data-tab="upload">📁 上传文件</button>
+    <button class="tab-btn" data-tab="text">📝 输入文本</button>
+    <button class="tab-btn" data-tab="history">📋 历史记录</button>
+  </div>
+
+  <!-- 上传区 -->
+  <section id="uploadZone" class="upload-zone tab-content active" data-content="upload">
+    <div class="upload-inner">
+      <div class="upload-icon">📄</div>
+      <p class="upload-title">把文件拖到这里，或<label for="fileInput" class="upload-link">点击选择</label></p>
+      <p class="upload-hint">支持 .txt / .md / .docx / .pptx</p>
+      <input type="file" id="fileInput" accept=".txt,.md,.markdown,.docx,.pptx" multiple hidden>
+    </div>
+  </section>
+
+  <!-- 文本输入区 -->
+  <section id="textInputZone" class="text-input-zone tab-content" data-content="text">
+    <textarea id="textInput" class="text-input" placeholder="在此粘贴或输入要审校的文本内容...&#10;&#10;支持多段落，空行自动分段。"></textarea>
+    <div class="text-input-actions">
+      <button id="clearTextBtn" class="btn btn-secondary">清空</button>
+      <button id="checkTextBtn" class="btn">开始审校</button>
+    </div>
+  </section>
+
+  <!-- 历史记录区 -->
+  <section id="historyZone" class="history-zone tab-content" data-content="history">
+    <div class="history-header">
+      <h2>历史记录</h2>
+      <button id="refreshHistoryBtn" class="btn btn-secondary">🔄 刷新</button>
+    </div>
+    <div id="historyList" class="history-list">
+      <p class="empty">加载中...</p>
+    </div>
+  </section>
+
+  <!-- 进度 -->
+  <div id="progress" class="progress hidden">
+    <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+    <span id="progressText" class="progress-text"></span>
+  </div>
+
+  <!-- AI 设置（折叠） -->
+  <details id="aiSettings" class="ai-settings">
+    <summary>⚙️ AI 接口设置（可选，用于"AI 深度检查"）</summary>
+    <div class="ai-settings-body">
+      <label class="ai-field">
+        <span>接口地址</span>
+        <input type="text" id="aiUrl" value="https://test.huihaohealth.com/ai-center/x/server/api/v1/chat/completions">
+      </label>
+      <label class="ai-field">
+        <span>模型名称</span>
+        <input type="text" id="aiModel" value="modelF">
+      </label>
+      <label class="ai-field">
+        <span>API Key（该接口不校验，随意填写）</span>
+        <input type="password" id="aiKey" value="not-required" placeholder="not-required">
+      </label>
+      <p class="ai-hint">⚠️ Key 仅保存在浏览器内存，刷新后需重填。规则检查完全离线，不依赖此设置。<br>
+      💡 模型名称请从上方列表选择（如 Claude-Haiku-4.5 / Gemini-2.5-Flash / GPT-4.1-Mini 等）</p>
+    </div>
+  </details>
+
+  <!-- 结果区（默认隐藏，有结果后显示） -->
+  <section id="results" class="results hidden">
+
+    <!-- 概览统计 -->
+    <div id="overview" class="overview"></div>
+
+    <!-- 工具栏：筛选 + 导出 + AI检查 -->
+    <div class="toolbar">
+      <div class="filters" id="filters">
+        <span class="filter-label">按等级：</span>
+        <button class="chip chip-level active" data-level="all">全部</button>
+        <button class="chip chip-level" data-level="red">🔴 必改</button>
+        <button class="chip chip-level" data-level="yellow">🟡 建议</button>
+        <button class="chip chip-level" data-level="blue">🔵 提示</button>
+        <span class="filter-sep">|</span>
+        <button class="chip chip-source active" data-source="all">全部来源</button>
+        <button class="chip chip-source" data-source="rule">🔧 规则</button>
+        <button class="chip chip-source" data-source="ai">🤖 AI</button>
+      </div>
+      <div class="actions">
+        <select id="docSelect" class="doc-select" title="切换已上传文件"></select>
+        <button id="aiCheckBtn" class="btn btn-ai">🤖 AI 深度检查</button>
+        <button id="exportBtn" class="btn">导出问题清单</button>
+      </div>
+    </div>
+
+    <!-- 双栏：原文预览 + 问题清单 -->
+    <div class="panes">
+      <div id="preview" class="pane preview-pane">
+        <h2 class="pane-title">原文预览</h2>
+        <div id="previewBody" class="preview-body"></div>
+      </div>
+      <div id="issueList" class="pane issue-pane">
+        <h2 class="pane-title">问题清单 <span id="issueCount" class="issue-count"></span></h2>
+        <div id="issueBody" class="issue-body"></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- 空态 / 错误提示 -->
+  <div id="toast" class="toast hidden"></div>
+
+</main>
+
+<footer class="app-footer">
+  <p>医学内容审校工具 v2 · 支持云端同步和历史记录 · 规则可在 <code>js/rules.js</code> 中维护</p>
+</footer>
+
+<!-- ============================================================
+     脚本按序加载（file:// 安全：全部 <script src>，无 ES module）
+     顺序：第三方库 → 规则数据 → 引擎 → 解析器 → 云同步 → 主程序
+     ============================================================ -->
+<script src="vendor/jszip.min.js"></script>
+<script src="vendor/mammoth.browser.min.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/parsers.js"></script>
+<script src="js/cloud-sync.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

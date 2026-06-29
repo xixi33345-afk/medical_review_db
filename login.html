@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - 医学内容审校工具</title>
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <style>
+    :root {
+      --accent: #0f766e;
+      --accent-soft: rgba(15, 118, 110, 0.1);
+      --card: #fff;
+      --bg: #f9fafb;
+      --line: #e5e7eb;
+      --ink: #1f2937;
+      --ink-soft: #6b7280;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg); color: var(--ink); line-height: 1.6;
+      display: flex; align-items: center; justify-content: center; min-height: 100vh;
+      padding: 20px;
+    }
+    .auth-card {
+      background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 40px; width: 100%; max-width: 420px;
+    }
+    .logo { text-align: center; margin-bottom: 32px; }
+    .logo-icon { font-size: 48px; }
+    .logo-title { font-size: 20px; font-weight: 700; color: var(--accent); margin-top: 8px; }
+    .logo-subtitle { font-size: 13px; color: var(--ink-soft); margin-top: 4px; }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 24px; background: #f3f4f6; padding: 4px; border-radius: 8px; }
+    .tab { flex: 1; padding: 8px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--ink-soft); transition: all .15s; }
+    .tab.active { background: var(--card); color: var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+
+    .form-field { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; }
+    .form-input {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px;
+      font-size: 14px; transition: border-color .2s;
+    }
+    .form-input:focus { outline: none; border-color: var(--accent); }
+
+    .btn {
+      width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .btn:hover { background: #0e6b63; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .hint { font-size: 12px; color: var(--ink-soft); text-align: center; margin-top: 16px; }
+    .error { background: #fee; color: #b91c1c; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .error.show { display: block; }
+
+    .offline-hint { text-align: center; padding: 24px; color: var(--ink-soft); font-size: 14px; }
+    .offline-hint a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="auth-card">
+    <div class="logo">
+      <div class="logo-icon">🩺</div>
+      <div class="logo-title">医学内容审校工具</div>
+      <div class="logo-subtitle">Medical Content Review Tool</div>
+    </div>
+
+    <div id="offlineHint" class="offline-hint" style="display:none;">
+      ⚠️ 当前通过 file:// 打开，无法使用云同步功能。<br>
+      请通过 <a href="#" onclick="alert('请使用 npx serve 或 python -m http.server 启动本地服务器')">HTTP 服务器</a> 访问以启用登录。
+    </div>
+
+    <div id="authForm">
+      <div class="tabs">
+        <div class="tab active" data-tab="login">登录</div>
+        <div class="tab" data-tab="signup">注册</div>
+      </div>
+
+      <div class="error" id="errorMsg"></div>
+
+      <form id="loginForm">
+        <div class="form-field">
+          <label class="form-label">邮箱</label>
+          <input type="email" class="form-input" id="loginEmail" placeholder="your@email.com" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label">密码</label>
+          <input type="password" class="form-input" id="loginPassword" placeholder="至少 6 位" required>
+        </div>
+        <button type="submit" class="btn">登录</button>
+      </form>
+
+      <form id="signupForm" style="display:none;">
+        <div class="form-field">
+          <label class="form-label">姓名（可选）</label>
+          <input type="text" class="form-input" id="signupName" placeholder="张三">
+        </div>
+        <div class="form-field">
+          <label class="form-label">邮箱</label>
+          <input type="email" class="form-input" id="signupEmail" placeholder="your@email.com" required>
+        </div>
+        <div class="form-field">
+          <label class="form-label">密码</label>
+          <input type="password" class="form-input" id="signupPassword" placeholder="至少 6 位" required>
+        </div>
+        <button type="submit" class="btn">注册</button>
+      </form>
+
+      <div class="hint">
+        内部工具，限团队成员使用（≤5人）
+      </div>
+    </div>
+  </div>
+
+  <script src="js/cloud-sync.js"></script>
+  <script>
+    var $ = function (id) { return document.getElementById(id); };
+
+    // 检查是否可用
+    if (!CloudSync.init()) {
+      $('offlineHint').style.display = 'block';
+      $('authForm').style.display = 'none';
+    } else if (CloudSync.user()) {
+      // 已登录，跳转到主页
+      location.href = 'index.html';
+    }
+
+    // 标签切换
+    document.querySelectorAll('.tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var t = tab.getAttribute('data-tab');
+        document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('active'); });
+        tab.classList.add('active');
+        $('loginForm').style.display = t === 'login' ? 'block' : 'none';
+        $('signupForm').style.display = t === 'signup' ? 'block' : 'none';
+        $('errorMsg').classList.remove('show');
+      });
+    });
+
+    // 登录
+    $('loginForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = $('loginEmail').value.trim();
+      var password = $('loginPassword').value;
+      var btn = $('loginForm').querySelector('.btn');
+      btn.disabled = true;
+      btn.textContent = '登录中...';
+
+      CloudSync.login(email, password).then(function () {
+        location.href = 'index.html';
+      }).catch(function (err) {
+        $('errorMsg').textContent = err.message || '登录失败';
+        $('errorMsg').classList.add('show');
+        btn.disabled = false;
+        btn.textContent = '登录';
+      });
+    });
+
+    // 注册
+    $('signupForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var name = $('signupName').value.trim();
+      var email = $('signupEmail').value.trim();
+      var password = $('signupPassword').value;
+      if (password.length < 6) {
+        $('errorMsg').textContent = '密码至少 6 位';
+        $('errorMsg').classList.add('show');
+        return;
+      }
+      var btn = $('signupForm').querySelector('.btn');
+      btn.disabled = true;
+      btn.textContent = '注册中...';
+
+      CloudSync.signup(email, password, name).then(function () {
+        location.href = 'index.html';
+      }).catch(function (err) {
+        $('errorMsg').textContent = err.message || '注册失败';
+        $('errorMsg').classList.add('show');
+        btn.disabled = false;
+        btn.textContent = '注册';
+      });
+    });
+  </script>
+</body>
+</html>

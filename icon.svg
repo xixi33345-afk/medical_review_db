@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 背景圆形 - 医疗蓝绿色渐变 -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f766e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#155e75;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <circle cx="256" cy="256" r="240" fill="url(#bg)"/>
+
+  <!-- 文档符号 -->
+  <path d="M180 140 h120 l40 40 v192 a20 20 0 0 1 -20 20 h-140 a20 20 0 0 1 -20 -20 v-212 a20 20 0 0 1 20 -20 z"
+        fill="#ffffff" opacity="0.95"/>
+
+  <!-- 文档折角 -->
+  <path d="M300 140 v40 h40 z" fill="#e0f2f1"/>
+
+  <!-- 文档内容线条 -->
+  <line x1="210" y1="210" x2="310" y2="210" stroke="#0f766e" stroke-width="6" stroke-linecap="round"/>
+  <line x1="210" y1="240" x2="290" y2="240" stroke="#0f766e" stroke-width="6" stroke-linecap="round"/>
+  <line x1="210" y1="270" x2="310" y2="270" stroke="#0f766e" stroke-width="6" stroke-linecap="round"/>
+  <line x1="210" y1="300" x2="270" y2="300" stroke="#0f766e" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- 医疗十字标志（右下角徽章） -->
+  <circle cx="340" cy="340" r="50" fill="#dc2626"/>
+  <rect x="325" y="315" width="30" height="50" rx="3" fill="#ffffff"/>
+  <rect x="315" y="325" width="50" height="30" rx="3" fill="#ffffff"/>
+
+  <!-- 检查勾（左下角） -->
+  <circle cx="190" cy="350" r="35" fill="#10b981" opacity="0.9"/>
+  <path d="M175 350 l10 10 l20 -25" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
